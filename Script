@@ -1,0 +1,88 @@
+import pandas as pd
+import seaborn as sns
+import numpy as np
+import warnings
+warnings.filterwarnings('ignore')
+
+# print all the outputs in a cell
+from IPython.core.interactiveshell import InteractiveShell
+InteractiveShell.ast_node_interactivity = "all"
+
+## USA.gov Data from Bitly
+
+import json
+file_name = 'bitly_usagov_example.txt'
+records = [json.loads(line) for line in open(file_name)]
+
+records[0:2]
+type(records)
+type(records[0])
+
+## Convert this dictionary *records* into DataFrame.
+
+df = pd.DataFrame.from_dict(records)
+df.head()
+
+### How many records are in the Dataframe?
+len(df)
+
+### In column city('cy'), how many records are Nan?
+len(df[df.cy.isna()])
+
+### Exclude Nan, how many different countries this dataset include? 
+df.c.unique()
+len(df.c.unique())
+df[df.c.notna()].c.unique()
+len(df[df.c.notna()].c.unique())
+
+### Outside of US, what's the top 5 cities use this Bitly service?
+df[df.c!='US'].groupby('cy').size().nlargest()
+
+### How many records are from Russia?
+df_RU =df[df.c=='RU']
+len(df_RU)
+
+### In those records, which city has the highest usage count ? 
+df_RU.groupby('cy').size()
+df_RU.groupby('cy').size().idxmax()
+
+### In those records, how many access to cia.gov?
+df_RU.u
+(df_RU.u.str.contains('cia.gov')).sum()
+df_RU[df_RU.u.str.contains('cia.gov')].u
+
+## We are interested in time zones in this data set (the **tz** field). 
+### Let's clean the tz field. If it is empty, filled with 'Unknown'. If it is NaN, filled with 'Missing'.  After cleaning, how many tz field are in 'Missing' state and how many are in 'Unknown' state?  (In Camino, fill in these two numbers in the format of 'Missing'/'Unknown')
+df.tz.head()
+df.tz.fillna(value='Missing',inplace=True)
+Missing_count = (df.tz=='Missing').sum()
+Missing_count
+df.tz.replace(to_replace='', value='Unknown', inplace=True)
+Unknown_count = (df.tz=='Unknown').sum()
+Unknown_count
+print ('Missing count: %d ' % Missing_count)
+print ('Unknown count: %d ' % Unknown_count)
+
+### What's the top 10 timezone in this data set? (exclude Unknown and Missing) 
+df_clean_tz = df[(df.tz!='Missing') & (df.tz!='Unknown')]
+df_clean_tz.groupby('tz').size().nlargest(10)
+df_clean_tz.groupby('tz').size().nlargest(10).tail(1)
+
+### Use seaborn package to make a horizontal bar plot based on previous question. (Use tz as Y-axis).  (In Camino, select the cities in the first 3 timezone, multiple choices)
+subset_tz=df_clean_tz.groupby('tz', as_index=False).size().nlargest(10)
+subset_tz
+sns.barplot(y=subset_tz.index, x= subset_tz.values)
+
+### If based on 'c' field (Country) and the 'America' keyword in 'tz' field, count how many records are from US ?
+df.c.unique()
+df.tz.unique()[0:10]
+count_US = (df.c=='US').sum()
+count_US
+count_America = (df.tz.str.contains('America')).sum()
+count_America
+
+### Based on last question,  is both counts match ? If not, find out how many records are timezone with 'America' keyword but Country not in US?
+Boolean_notUS_butAmerica = (df.c!='US')&(df.tz.str.contains('America'))
+Boolean_notUS_butAmerica.sum()
+df[Boolean_notUS_butAmerica][['c','tz']][0:10]
+> #### Because there are other countries also has Timezone starts with 'America/...'
